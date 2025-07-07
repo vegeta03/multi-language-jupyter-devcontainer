@@ -1,0 +1,38 @@
+{
+    "name": "JupyterLab with TypeScript, Go, Java, Scala Kernels",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+    "features": {
+        "ghcr.io/devcontainers/features/python": {
+            "installJupyterlab": true
+        }
+    },
+    "postCreateCommand": "jupyter kernelspec list && jupyter lab --generate-config",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.python",
+                "ms-toolsai.jupyter",
+                "ms-vscode.vscode-typescript-next",
+                "golang.go",
+                "redhat.java",
+                "scala-lang.scala"
+            ],
+            "settings": {
+                "jupyter.interactiveWindow.textEditor.executeSelection": true,
+                "jupyter.askForKernelRestart": false
+            }
+        }
+    },
+    "forwardPorts": [
+        8888
+    ],
+    "portsAttributes": {
+        "8888": {
+            "label": "JupyterLab",
+            "onAutoForward": "openBrowser"
+        }
+    },
+    "remoteUser": "vscode"
+}
