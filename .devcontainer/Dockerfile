@@ -90,7 +90,7 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && python3 install.py --user \
     && cd /home/vscode && rm -rf /tmp/ijava
 
-# Install Almond kernel for Scala - FIXED VERSION
+# Install Almond kernel for Scala
 ENV SCALA_VERSION=3.3.0
 ENV ALMOND_VERSION=0.13.8
 
@@ -98,8 +98,17 @@ ENV ALMOND_VERSION=0.13.8
 RUN mkdir -p /home/vscode/.local/share/coursier/bin
 ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
 
-# Install Scala and Scalac using coursier (not cs)
-RUN coursier install --install-dir /home/vscode/.local/share/coursier/bin scala:${SCALA_VERSION} scalac:${SCALA_VERSION}
+# Use cs setup to install Scala toolchain properly
+RUN coursier bootstrap -o /usr/local/bin/cs coursier:2.1.0 && \
+    chmod +x /usr/local/bin/cs
+
+# Install Scala using cs setup (avoids prebuilt launcher issues)
+RUN cs setup --yes --install-dir /home/vscode/.local/share/coursier/bin
+
+# Install specific Scala version if needed
+RUN cs install --install-dir /home/vscode/.local/share/coursier/bin \
+    scala:${SCALA_VERSION} --force || \
+    cs launch scala:${SCALA_VERSION} -- -version
 
 # Bootstrap Almond and register the kernel
 RUN coursier bootstrap \
