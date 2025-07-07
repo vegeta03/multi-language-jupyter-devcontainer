@@ -1,5 +1,5 @@
 # Use official DevContainers Python image with JupyterLab support
-FROM mcr.microsoft.com/devcontainers/python:1-3-bullseye
+FROM mcr.microsoft.com/devcontainers/python:1-3-bookworm
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
@@ -26,14 +26,19 @@ ENV PATH="/usr/local/go/bin:$PATH"
 ENV GOPATH="/home/vscode/go"
 ENV PATH="$GOPATH/bin:$PATH"
 
-# Install Java 24 (OpenJDK)
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends openjdk-24-jdk && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+# ──────────────────────────────────────────────────────────────
+# Install Java 24 (Eclipse Temurin 24.0.1) from Adoptium
+# ──────────────────────────────────────────────────────────────
+ENV JAVA_VERSION=24 \
+    JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 
-# set JAVA_HOME for OpenJDK 24
-ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
-ENV PATH="$JAVA_HOME/bin:${PATH}"
+RUN wget -O /tmp/openjdk.tar.gz \
+        https://github.com/adoptium/temurin24-binaries/releases/download/jdk-24.0.1%2B9/OpenJDK24U-jdk_x64_linux_hotspot_24.0.1_9.tar.gz \
+    && mkdir -p "$JAVA_HOME" \
+    && tar -xzf /tmp/openjdk.tar.gz -C "$JAVA_HOME" --strip-components=1 \
+    && rm /tmp/openjdk.tar.gz
+
+ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Install Scala 3.7.1
 ARG SCALA_VERSION=3.7.1
