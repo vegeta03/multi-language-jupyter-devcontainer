@@ -94,21 +94,21 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && python3 install.py --user \
     && cd /home/vscode && rm -rf /tmp/ijava
 
-# Install Almond kernel for Scala - FIXED VERSION
+# Install Almond kernel for Scala - FIXED VERSION WITH CORRECT REPOSITORIES
 ENV SCALA_VERSION=3.3.0
-ENV ALMOND_VERSION=0.13.8
+ENV ALMOND_VERSION=0.14.0-RC14
 
 # Create coursier bin directory and add to PATH
 RUN mkdir -p /home/vscode/.local/share/coursier/bin
 ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
 
-# Use cs setup to install Scala toolchain properly (now that cs exists)
+# Use cs setup to install Scala toolchain properly
 RUN cs setup --yes --install-dir /home/vscode/.local/share/coursier/bin
 
 # Verify Scala installation
 RUN which scala || echo "Scala not found in PATH, using cs launch for wrapper scripts"
 
-# Create wrapper scripts for scala and scalac if they don't exist
+# Create wrapper scripts for scala and scalac if they don't exist (fallback)
 RUN if ! which scala >/dev/null 2>&1; then \
         echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scala && \
         echo 'exec cs launch scala:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scala && \
@@ -121,14 +121,24 @@ RUN if ! which scalac >/dev/null 2>&1; then \
         chmod +x /home/vscode/.local/share/coursier/bin/scalac; \
     fi
 
-# Bootstrap Almond and register the kernel
+# Install Almond kernel using updated method with correct repositories
 RUN coursier bootstrap \
-    -r jitpack \
+    -r central \
+    -r https://oss.sonatype.org/content/repositories/snapshots \
     sh.almond:scala-kernel_3:${ALMOND_VERSION} \
     --sources --default=true \
-    -o /home/vscode/almond && \
-    /home/vscode/almond --install --user && \
-    rm /home/vscode/almond
+    -o /home/vscode/almond || \
+    cs install almond --channel https://github.com/almond-sh/almond || \
+    cs install --contrib almond
+
+# Register Almond kernel (try multiple methods for robustness)
+RUN if [ -f /home/vscode/almond ]; then \
+        /home/vscode/almond --install --user && rm /home/vscode/almond; \
+    elif which almond >/dev/null 2>&1; then \
+        almond --install --user; \
+    else \
+        cs launch almond -- --install --user; \
+    fi
 
 # Create JupyterLab configuration for autocompletion
 RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/completer-extension/ \
