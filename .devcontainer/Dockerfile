@@ -7,16 +7,16 @@ ENV SHELL=/bin/bash
 
 # Update system packages
 RUN apt-get update && apt-get install -y \
-curl \
-wget \
-unzip \
-build-essential \
-git \
-&& rm -rf /var/lib/apt/lists/*
+    curl \
+    wget \
+    unzip \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 LTS for TypeScript support
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-&& apt-get install -y nodejs
+    && apt-get install -y nodejs
 
 # Install global npm packages as root BEFORE switching users
 RUN npm install -g typescript-jupyter-kernel typescript @types/node
@@ -25,18 +25,17 @@ RUN npm install -g typescript-jupyter-kernel typescript @types/node
 RUN wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz \
     && tar -C /usr/local -xzf go1.24.4.linux-amd64.tar.gz \
     && rm go1.24.4.linux-amd64.tar.gz
+
 ENV PATH="/usr/local/go/bin:$PATH"
 ENV GOPATH="/home/vscode/go"
 ENV PATH="$GOPATH/bin:$PATH"
 
-# ──────────────────────────────────────────────────────────────
 # Install Java 24 (Eclipse Temurin 24.0.1) from Adoptium
-# ──────────────────────────────────────────────────────────────
 ENV JAVA_VERSION=24 \
     JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 
 RUN wget -O /tmp/openjdk.tar.gz \
-        https://github.com/adoptium/temurin24-binaries/releases/download/jdk-24.0.1%2B9/OpenJDK24U-jdk_x64_linux_hotspot_24.0.1_9.tar.gz \
+    https://github.com/adoptium/temurin24-binaries/releases/download/jdk-24.0.1%2B9/OpenJDK24U-jdk_x64_linux_hotspot_24.0.1_9.tar.gz \
     && mkdir -p "$JAVA_HOME" \
     && tar -xzf /tmp/openjdk.tar.gz -C "$JAVA_HOME" --strip-components=1 \
     && rm /tmp/openjdk.tar.gz
@@ -48,7 +47,7 @@ ARG SCALA_VERSION=3.7.1
 RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz \
     && tar -xzf scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz -C /usr/local/share \
     && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
-    && ln -s /usr/local/share/scala3/bin/scala  /usr/local/bin/scala  \
+    && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
     && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
     && rm scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz
 
@@ -59,6 +58,7 @@ RUN curl -fLo coursier https://git.io/coursier-cli-linux \
 
 # Switch to vscode user for installations
 USER vscode
+
 WORKDIR /home/vscode
 
 # Install JupyterLab and extensions
@@ -74,6 +74,7 @@ RUN ts-kernel install --user
 RUN go install github.com/janpfeifer/gonb@latest \
     && go install golang.org/x/tools/cmd/goimports@latest \
     && go install golang.org/x/tools/gopls@latest
+
 RUN gonb --install --user
 
 # Install IJava kernel for Java
@@ -86,13 +87,16 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
 # Install Almond kernel for Scala
 ENV SCALA_VERSION=3.7.1
 ENV ALMOND_VERSION=0.17.0
+
 RUN coursier bootstrap \
     -r jitpack \
     -i user -I user:sh.almond:scala-kernel-api_$SCALA_VERSION:$ALMOND_VERSION \
     sh.almond:scala-kernel_$SCALA_VERSION:$ALMOND_VERSION \
     --sources --default=true \
     -o /home/vscode/almond
+
 RUN /home/vscode/almond --install --user
+
 RUN rm -f /home/vscode/almond
 
 # Create JupyterLab configuration for autocompletion
