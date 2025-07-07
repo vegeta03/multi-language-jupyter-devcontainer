@@ -46,14 +46,14 @@ RUN wget -O /tmp/openjdk.tar.gz \
 
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-# Install Scala 3.3.0
-ARG SCALA_VERSION=3.3.0
-RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz \
-    && tar -xzf scala3-${SCALA_VERSION}.tar.gz -C /usr/local/share \
-    && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
-    && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
-    && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
-    && rm scala3-${SCALA_VERSION}.tar.gz
+# # Install Scala 3.3.0
+# ARG SCALA_VERSION=3.3.0
+# RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz \
+#     && tar -xzf scala3-${SCALA_VERSION}.tar.gz -C /usr/local/share \
+#     && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
+#     && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
+#     && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
+#     && rm scala3-${SCALA_VERSION}.tar.gz
 
 # Install Coursier for Scala package management
 RUN curl -fLo coursier https://git.io/coursier-cli-linux \
@@ -104,16 +104,19 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
 # Install Almond kernel for Scala
 ENV SCALA_VERSION=3.3.0
 ENV ALMOND_VERSION=0.13.8
+ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
 
+# Install Scala runner + compiler for this user
+RUN cs install scala:${SCALA_VERSION} scalac:${SCALA_VERSION}
+
+# Bootstrap Almond and register the kernel
 RUN coursier bootstrap \
-    -r jitpack \
-    sh.almond:scala-kernel_$SCALA_VERSION:$ALMOND_VERSION \
-    --sources --default=true \
-    -o /home/vscode/almond
-
-RUN /home/vscode/almond --install --user
-
-RUN rm -f /home/vscode/almond
+      -r jitpack \
+      sh.almond:scala-kernel_3:${ALMOND_VERSION} \
+      --sources --default=true \
+      -o /home/vscode/almond && \
+    /home/vscode/almond --install --user && \
+    rm /home/vscode/almond
 
 # Create JupyterLab configuration for autocompletion
 RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/completer-extension/ \
