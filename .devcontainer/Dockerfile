@@ -23,7 +23,7 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
 # Install global npm packages as root BEFORE switching users
-RUN npm install -g typescript-jupyter-kernel typescript @types/node
+RUN npm install -g typescript-jupyter-kernel typescript @types/node @jupyterlab/server-proxy
 
 # Install Go 1.24.4
 RUN wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz \
@@ -72,7 +72,19 @@ RUN pip install --user --no-cache-dir \
     jupyterlab-lsp
 
 # Install TypeScript Jupyter Kernel with autocompletion
-RUN ts-kernel install --user
+# Fix PATH for user-installed Python packages
+ENV PATH="/home/vscode/.local/bin:$PATH"
+
+# Install TypeScript Jupyter Kernel manually (avoiding CLI bug)
+RUN mkdir -p /home/vscode/.local/share/jupyter/kernels/typescript && \
+    echo '{ \
+      "argv": ["ts-kernel", "{connection_file}"], \
+      "display_name": "TypeScript", \
+      "language": "typescript", \
+      "metadata": { \
+        "debugger": true \
+      } \
+    }' > /home/vscode/.local/share/jupyter/kernels/typescript/kernel.json
 
 # Install GoNB kernel with autocompletion support
 RUN go install github.com/janpfeifer/gonb@latest \
