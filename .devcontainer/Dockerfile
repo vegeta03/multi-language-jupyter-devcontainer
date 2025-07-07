@@ -87,11 +87,12 @@ RUN mkdir -p /home/vscode/.local/share/jupyter/kernels/typescript && \
     }' > /home/vscode/.local/share/jupyter/kernels/typescript/kernel.json
 
 # Install GoNB kernel with autocompletion support
-RUN go install github.com/janpfeifer/gonb@latest \
+RUN go install github.com/janpfeifer/gonb@v0.11.1 \
     && go install golang.org/x/tools/cmd/goimports@latest \
     && go install golang.org/x/tools/gopls@latest
 
-RUN gonb --install --user
+# Install GoNB kernel (no --user flag needed)
+RUN gonb --install
 
 # Install IJava kernel for Java
 RUN mkdir /tmp/ijava && cd /tmp/ijava \
