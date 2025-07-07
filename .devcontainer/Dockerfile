@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0)
+# Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0) and JupyterLab Server Proxy (required for GoNB)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
@@ -56,14 +56,19 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 #     && rm scala3-${SCALA_VERSION}.tar.gz
 
 # Install Coursier for Scala package management
-RUN curl -fLo coursier https://git.io/coursier-cli-linux \
-    && chmod +x coursier \
-    && mv coursier /usr/local/bin/
+# RUN curl -fLo coursier https://git.io/coursier-cli-linux \
+#     && chmod +x coursier \
+#     && mv coursier /usr/local/bin/
 
 # Switch to vscode user for installations
 USER vscode
 
 WORKDIR /home/vscode
+ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
+
+# Install coursier
+RUN curl -fLs https://git.io/coursier-cli-linux \
+    | bash -s -- --install-dir /home/vscode/.local/share/coursier/bin
 
 # Install JupyterLab and extensions
 RUN pip install --user --no-cache-dir \
