@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 LTS for TypeScript support
+# Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
@@ -48,12 +48,12 @@ ENV PATH="$JAVA_HOME/bin:$PATH"
 
 # Install Scala 3.3.0
 ARG SCALA_VERSION=3.3.0
-RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz \
-    && tar -xzf scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz -C /usr/local/share \
+RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz \
+    && tar -xzf scala3-${SCALA_VERSION}.tar.gz -C /usr/local/share \
     && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
     && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
     && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
-    && rm scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz
+    && rm scala3-${SCALA_VERSION}.tar.gz
 
 # Install Coursier for Scala package management
 RUN curl -fLo coursier https://git.io/coursier-cli-linux \
@@ -71,7 +71,7 @@ RUN pip install --user --no-cache-dir \
     jupyter-lsp \
     jupyterlab-lsp
 
-# Install TypeScript Jupyter Kernel with autocompletion
+# Install TypeScript Jupyter Kernel with autocompletion support (required for JupyterLab 4.0)
 # Fix PATH for user-installed Python packages
 ENV PATH="/home/vscode/.local/bin:$PATH"
 
