@@ -1,5 +1,5 @@
 # Use official DevContainers Python image with JupyterLab support
-FROM mcr.microsoft.com/devcontainers/python:1-3-bookworm
+FROM mcr.microsoft.com/devcontainers/python:3.13-bookworm
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive
