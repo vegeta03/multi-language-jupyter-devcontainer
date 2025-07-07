@@ -7,16 +7,19 @@ ENV SHELL=/bin/bash
 
 # Update system packages
 RUN apt-get update && apt-get install -y \
-    curl \
-    wget \
-    unzip \
-    build-essential \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+curl \
+wget \
+unzip \
+build-essential \
+git \
+&& rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 LTS for TypeScript support
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
-    && apt-get install -y nodejs
+&& apt-get install -y nodejs
+
+# Install global npm packages as root BEFORE switching users
+RUN npm install -g typescript-jupyter-kernel typescript @types/node
 
 # Install Go 1.24.4
 RUN wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz \
@@ -65,7 +68,6 @@ RUN pip install --user --no-cache-dir \
     jupyterlab-lsp
 
 # Install TypeScript Jupyter Kernel with autocompletion
-RUN npm install -g typescript-jupyter-kernel typescript @types/node
 RUN ts-kernel install --user
 
 # Install GoNB kernel with autocompletion support
