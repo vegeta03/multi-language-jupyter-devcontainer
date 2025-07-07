@@ -46,8 +46,8 @@ RUN wget -O /tmp/openjdk.tar.gz \
 
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-# Install Scala 3.7.1
-ARG SCALA_VERSION=3.7.1
+# Install Scala 3.3.6
+ARG SCALA_VERSION=3.3.6
 RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz \
     && tar -xzf scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz -C /usr/local/share \
     && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
@@ -102,7 +102,7 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && cd /home/vscode && rm -rf /tmp/ijava
 
 # Install Almond kernel for Scala
-ENV SCALA_VERSION=3.7.1
+ENV SCALA_VERSION=3.3.6
 ENV ALMOND_VERSION=0.17.0
 
 RUN coursier bootstrap \
