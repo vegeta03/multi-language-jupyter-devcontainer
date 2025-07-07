@@ -3,11 +3,7 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
-    "features": {
-        "ghcr.io/devcontainers/features/python": {
-            "installJupyterlab": true
-        }
-    },
+    "features": {},
     "postCreateCommand": "jupyter kernelspec list && jupyter lab --generate-config",
     "customizations": {
         "vscode": {
