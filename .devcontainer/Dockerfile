@@ -19,11 +19,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
     && apt-get install -y nodejs
 
 # Install global npm packages as root BEFORE switching users
-RUN npm install -g typescript-jupyter-kernel typescript @types/node @jupyterlab/server-proxy
+RUN npm install -g typescript @types/node
 
 # Install Go 1.24.4
 RUN wget https://go.dev/dl/go1.24.4.linux-amd64.tar.gz \
@@ -59,25 +59,21 @@ RUN coursier bootstrap -o /usr/local/bin/cs coursier:2.1.0 && \
 USER vscode
 WORKDIR /home/vscode
 
-# Install JupyterLab and extensions
+# Install JupyterLab and minimal extensions (avoiding performance-heavy extensions)
 RUN pip install --user --no-cache-dir \
     jupyterlab \
     jupyter-lsp \
-    jupyterlab-lsp
+    jupyterlab-lsp \
+    ipywidgets
 
 # Fix PATH for user-installed Python packages
 ENV PATH="/home/vscode/.local/bin:$PATH"
 
-# Install TypeScript Jupyter Kernel manually (avoiding CLI bug)
-RUN mkdir -p /home/vscode/.local/share/jupyter/kernels/typescript && \
-    echo '{ \
-        "argv": ["ts-kernel", "{connection_file}"], \
-        "display_name": "TypeScript", \
-        "language": "typescript", \
-        "metadata": { \
-            "debugger": true \
-        } \
-    }' > /home/vscode/.local/share/jupyter/kernels/typescript/kernel.json
+# Install improved TypeScript kernel using tslab (more stable than typescript-jupyter-kernel)
+RUN npm install -g tslab
+
+# Register tslab kernel (this replaces the manual kernel.json creation)
+RUN tslab install --user
 
 # Install GoNB kernel with autocompletion support
 RUN go install github.com/janpfeifer/gonb@v0.11.1 \
@@ -110,16 +106,16 @@ RUN which scala || echo "Scala not found in PATH, using cs launch for wrapper sc
 
 # Create wrapper scripts for scala and scalac if they don't exist (fallback)
 RUN if ! which scala >/dev/null 2>&1; then \
-        echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scala && \
-        echo 'exec cs launch scala:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scala && \
-        chmod +x /home/vscode/.local/share/coursier/bin/scala; \
-    fi
+    echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scala && \
+    echo 'exec cs launch scala:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scala && \
+    chmod +x /home/vscode/.local/share/coursier/bin/scala; \
+fi
 
 RUN if ! which scalac >/dev/null 2>&1; then \
-        echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scalac && \
-        echo 'exec cs launch scalac:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scalac && \
-        chmod +x /home/vscode/.local/share/coursier/bin/scalac; \
-    fi
+    echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scalac && \
+    echo 'exec cs launch scalac:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scalac && \
+    chmod +x /home/vscode/.local/share/coursier/bin/scalac; \
+fi
 
 # Install Almond kernel using updated method with correct repositories and CLI interface
 RUN coursier bootstrap \
@@ -133,20 +129,37 @@ RUN coursier bootstrap \
 
 # Register Almond kernel (FIXED: removed --user flag for 0.14.1+ compatibility)
 RUN if [ -f /home/vscode/almond ]; then \
-        /home/vscode/almond --install && rm /home/vscode/almond; \
-    elif which almond >/dev/null 2>&1; then \
-        almond --install; \
-    else \
-        cs launch almond -- --install; \
-    fi
+    /home/vscode/almond --install && rm /home/vscode/almond; \
+elif which almond >/dev/null 2>&1; then \
+    almond --install; \
+else \
+    cs launch almond -- --install; \
+fi
 
 # Verify Almond kernel installation
 RUN jupyter kernelspec list | grep -i scala || echo "Scala kernel installation verification failed, but continuing build"
 
-# Create JupyterLab configuration for autocompletion
+# Create optimized JupyterLab configuration
 RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/completer-extension/ \
-    && echo '{"autoCompletion": {"enabled": true, "continuous": true}}' > \
+    && echo '{"autoCompletion": {"enabled": true, "continuous": false, "showDocumentation": false}}' > \
     /home/vscode/.jupyter/lab/user-settings/@jupyterlab/completer-extension/manager.jupyterlab-settings
+
+# Create JupyterLab configuration to disable problematic extensions and optimize performance
+RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/extensionmanager-extension/ \
+    && echo '{"enabled": false}' > \
+    /home/vscode/.jupyter/lab/user-settings/@jupyterlab/extensionmanager-extension/plugin.jupyterlab-settings
+
+# Configure notebook settings for better performance
+RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/ \
+    && echo '{"kernelShutdown": true, "autoStartDefaultKernel": false}' > \
+    /home/vscode/.jupyter/lab/user-settings/@jupyterlab/notebook-extension/tracker.jupyterlab-settings
+
+# Create custom jupyter_lab_config.py for optimized performance
+RUN mkdir -p /home/vscode/.jupyter && \
+    echo "c.ServerApp.kernel_spec_manager_class = 'jupyter_client.kernelspec.KernelSpecManager'" > /home/vscode/.jupyter/jupyter_lab_config.py && \
+    echo "c.ServerApp.kernel_manager_class = 'jupyter_server.services.kernels.kernelmanager.MappingKernelManager'" >> /home/vscode/.jupyter/jupyter_lab_config.py && \
+    echo "c.MappingKernelManager.kernel_info_timeout = 30" >> /home/vscode/.jupyter/jupyter_lab_config.py && \
+    echo "c.MappingKernelManager.shutdown_wait_time = 5" >> /home/vscode/.jupyter/jupyter_lab_config.py
 
 # Switch back to root for final setup
 USER root
@@ -157,5 +170,5 @@ EXPOSE 8888
 # Set final user
 USER vscode
 
-# Default command
-CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root"]
+# Default command with optimized settings
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.kernel_spec_manager_class=jupyter_client.kernelspec.KernelSpecManager"]

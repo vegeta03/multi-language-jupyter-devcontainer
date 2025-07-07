@@ -17,7 +17,9 @@
             ],
             "settings": {
                 "jupyter.interactiveWindow.textEditor.executeSelection": true,
-                "jupyter.askForKernelRestart": false
+                "jupyter.askForKernelRestart": false,
+                "jupyter.kernels.filter": [],
+                "jupyter.kernels.excludePythonEnvironments": false
             }
         }
     },
