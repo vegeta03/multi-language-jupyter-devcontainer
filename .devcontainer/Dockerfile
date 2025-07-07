@@ -36,12 +36,13 @@ ENV JAVA_HOME=/usr/lib/jvm/java-24-openjdk-amd64
 ENV PATH="$JAVA_HOME/bin:${PATH}"
 
 # Install Scala 3.7.1
-RUN wget https://github.com/lampepfl/dotty/releases/download/3.7.1/scala3-3.7.1.tar.gz \
-    && tar -xzf scala3-3.7.1.tar.gz -C /usr/local/share \
-    && ln -s /usr/local/share/scala3-3.7.1 /usr/local/share/scala3 \
-    && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
+ARG SCALA_VERSION=3.7.1
+RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz \
+    && tar -xzf scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz -C /usr/local/share \
+    && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
+    && ln -s /usr/local/share/scala3/bin/scala  /usr/local/bin/scala  \
     && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
-    && rm scala3-3.7.1.tar.gz
+    && rm scala3-${SCALA_VERSION}-x86_64-pc-linux.tar.gz
 
 # Install Coursier for Scala package management
 RUN curl -fLo coursier https://git.io/coursier-cli-linux \
