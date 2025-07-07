@@ -46,12 +46,16 @@ RUN wget -O /tmp/openjdk.tar.gz \
 
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-# Install Coursier for Scala package management
+# Install Coursier for Scala package management (AS ROOT)
 RUN curl -fLo coursier https://git.io/coursier-cli-linux \
     && chmod +x coursier \
     && mv coursier /usr/local/bin/
 
-# Switch to vscode user for installations
+# Install cs command AS ROOT to avoid permission issues
+RUN coursier bootstrap -o /usr/local/bin/cs coursier:2.1.0 && \
+    chmod +x /usr/local/bin/cs
+
+# Switch to vscode user for user-specific installations
 USER vscode
 WORKDIR /home/vscode
 
@@ -90,7 +94,7 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && python3 install.py --user \
     && cd /home/vscode && rm -rf /tmp/ijava
 
-# Install Almond kernel for Scala
+# Install Almond kernel for Scala - FIXED VERSION
 ENV SCALA_VERSION=3.3.0
 ENV ALMOND_VERSION=0.13.8
 
@@ -98,17 +102,24 @@ ENV ALMOND_VERSION=0.13.8
 RUN mkdir -p /home/vscode/.local/share/coursier/bin
 ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
 
-# Use cs setup to install Scala toolchain properly
-RUN coursier bootstrap -o /usr/local/bin/cs coursier:2.1.0 && \
-    chmod +x /usr/local/bin/cs
-
-# Install Scala using cs setup (avoids prebuilt launcher issues)
+# Use cs setup to install Scala toolchain properly (now that cs exists)
 RUN cs setup --yes --install-dir /home/vscode/.local/share/coursier/bin
 
-# Install specific Scala version if needed
-RUN cs install --install-dir /home/vscode/.local/share/coursier/bin \
-    scala:${SCALA_VERSION} --force || \
-    cs launch scala:${SCALA_VERSION} -- -version
+# Verify Scala installation
+RUN which scala || echo "Scala not found in PATH, using cs launch for wrapper scripts"
+
+# Create wrapper scripts for scala and scalac if they don't exist
+RUN if ! which scala >/dev/null 2>&1; then \
+        echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scala && \
+        echo 'exec cs launch scala:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scala && \
+        chmod +x /home/vscode/.local/share/coursier/bin/scala; \
+    fi
+
+RUN if ! which scalac >/dev/null 2>&1; then \
+        echo '#!/bin/bash' > /home/vscode/.local/share/coursier/bin/scalac && \
+        echo 'exec cs launch scalac:'"${SCALA_VERSION}"' -- "$@"' >> /home/vscode/.local/share/coursier/bin/scalac && \
+        chmod +x /home/vscode/.local/share/coursier/bin/scalac; \
+    fi
 
 # Bootstrap Almond and register the kernel
 RUN coursier bootstrap \
