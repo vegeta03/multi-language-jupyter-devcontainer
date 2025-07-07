@@ -10,8 +10,12 @@ RUN apt-get update && apt-get install -y \
     curl \
     wget \
     unzip \
-    build-essential \
     git \
+    build-essential \
+    libtool \
+    pkg-config \
+    automake \
+    autoconf \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Node.js 20 LTS for TypeScript support
