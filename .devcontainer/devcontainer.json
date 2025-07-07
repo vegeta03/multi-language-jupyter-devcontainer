@@ -4,7 +4,7 @@
         "dockerfile": "Dockerfile"
     },
     "features": {},
-    "postCreateCommand": "jupyter kernelspec list",
+    "postCreateCommand": "mkdir -p typescript/notebooks go/notebooks java/notebooks scala/notebooks && cd typescript && npm init -y && cd ../go && go mod init jupyter-go-project && cd ../java && echo '<?xml version=\"1.0\"?><project><modelVersion>4.0.0</modelVersion><groupId>jupyter</groupId><artifactId>java-notebooks</artifactId><version>1.0.0</version></project>' > pom.xml && cd ../scala && echo 'scalaVersion := \"3.3.0\"' > build.sbt && cd .. && jupyter kernelspec list",
     "customizations": {
         "vscode": {
             "extensions": [
