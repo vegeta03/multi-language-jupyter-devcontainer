@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y \
     autoconf \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0) and JupyterLab Server Proxy (required for GoNB)
+# Install Node.js 20 LTS for TypeScript support (required for JupyterLab 4.0)
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
@@ -46,29 +46,14 @@ RUN wget -O /tmp/openjdk.tar.gz \
 
 ENV PATH="$JAVA_HOME/bin:$PATH"
 
-# # Install Scala 3.3.0
-# ARG SCALA_VERSION=3.3.0
-# RUN wget -q https://github.com/scala/scala3/releases/download/${SCALA_VERSION}/scala3-${SCALA_VERSION}.tar.gz \
-#     && tar -xzf scala3-${SCALA_VERSION}.tar.gz -C /usr/local/share \
-#     && ln -s /usr/local/share/scala3-${SCALA_VERSION} /usr/local/share/scala3 \
-#     && ln -s /usr/local/share/scala3/bin/scala /usr/local/bin/scala \
-#     && ln -s /usr/local/share/scala3/bin/scalac /usr/local/bin/scalac \
-#     && rm scala3-${SCALA_VERSION}.tar.gz
-
 # Install Coursier for Scala package management
-# RUN curl -fLo coursier https://git.io/coursier-cli-linux \
-#     && chmod +x coursier \
-#     && mv coursier /usr/local/bin/
+RUN curl -fLo coursier https://git.io/coursier-cli-linux \
+    && chmod +x coursier \
+    && mv coursier /usr/local/bin/
 
 # Switch to vscode user for installations
 USER vscode
-
 WORKDIR /home/vscode
-ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
-
-# Install coursier
-RUN curl -fLs https://git.io/coursier-cli-linux \
-    | bash -s -- --install-dir /home/vscode/.local/share/coursier/bin
 
 # Install JupyterLab and extensions
 RUN pip install --user --no-cache-dir \
@@ -76,19 +61,18 @@ RUN pip install --user --no-cache-dir \
     jupyter-lsp \
     jupyterlab-lsp
 
-# Install TypeScript Jupyter Kernel with autocompletion support (required for JupyterLab 4.0)
 # Fix PATH for user-installed Python packages
 ENV PATH="/home/vscode/.local/bin:$PATH"
 
 # Install TypeScript Jupyter Kernel manually (avoiding CLI bug)
 RUN mkdir -p /home/vscode/.local/share/jupyter/kernels/typescript && \
     echo '{ \
-      "argv": ["ts-kernel", "{connection_file}"], \
-      "display_name": "TypeScript", \
-      "language": "typescript", \
-      "metadata": { \
-        "debugger": true \
-      } \
+        "argv": ["ts-kernel", "{connection_file}"], \
+        "display_name": "TypeScript", \
+        "language": "typescript", \
+        "metadata": { \
+            "debugger": true \
+        } \
     }' > /home/vscode/.local/share/jupyter/kernels/typescript/kernel.json
 
 # Install GoNB kernel with autocompletion support
@@ -106,20 +90,23 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && python3 install.py --user \
     && cd /home/vscode && rm -rf /tmp/ijava
 
-# Install Almond kernel for Scala
+# Install Almond kernel for Scala - FIXED VERSION
 ENV SCALA_VERSION=3.3.0
 ENV ALMOND_VERSION=0.13.8
+
+# Create coursier bin directory and add to PATH
+RUN mkdir -p /home/vscode/.local/share/coursier/bin
 ENV PATH="/home/vscode/.local/share/coursier/bin:${PATH}"
 
-# Install Scala runner + compiler for this user
-RUN cs install scala:${SCALA_VERSION} scalac:${SCALA_VERSION}
+# Install Scala and Scalac using coursier (not cs)
+RUN coursier install --install-dir /home/vscode/.local/share/coursier/bin scala:${SCALA_VERSION} scalac:${SCALA_VERSION}
 
 # Bootstrap Almond and register the kernel
 RUN coursier bootstrap \
-      -r jitpack \
-      sh.almond:scala-kernel_3:${ALMOND_VERSION} \
-      --sources --default=true \
-      -o /home/vscode/almond && \
+    -r jitpack \
+    sh.almond:scala-kernel_3:${ALMOND_VERSION} \
+    --sources --default=true \
+    -o /home/vscode/almond && \
     /home/vscode/almond --install --user && \
     rm /home/vscode/almond
 
