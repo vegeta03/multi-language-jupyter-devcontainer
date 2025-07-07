@@ -94,9 +94,9 @@ RUN mkdir /tmp/ijava && cd /tmp/ijava \
     && python3 install.py --user \
     && cd /home/vscode && rm -rf /tmp/ijava
 
-# Install Almond kernel for Scala - FIXED VERSION WITH CORRECT REPOSITORIES
+# Install Almond kernel for Scala - FIXED VERSION WITH CORRECT CLI INTERFACE
 ENV SCALA_VERSION=3.3.0
-ENV ALMOND_VERSION=0.14.0-RC14
+ENV ALMOND_VERSION=0.14.1
 
 # Create coursier bin directory and add to PATH
 RUN mkdir -p /home/vscode/.local/share/coursier/bin
@@ -121,24 +121,27 @@ RUN if ! which scalac >/dev/null 2>&1; then \
         chmod +x /home/vscode/.local/share/coursier/bin/scalac; \
     fi
 
-# Install Almond kernel using updated method with correct repositories
+# Install Almond kernel using updated method with correct repositories and CLI interface
 RUN coursier bootstrap \
     -r central \
     -r https://oss.sonatype.org/content/repositories/snapshots \
-    sh.almond:scala-kernel_3:${ALMOND_VERSION} \
+    sh.almond:scala-kernel_3.6.3:${ALMOND_VERSION} \
     --sources --default=true \
     -o /home/vscode/almond || \
     cs install almond --channel https://github.com/almond-sh/almond || \
     cs install --contrib almond
 
-# Register Almond kernel (try multiple methods for robustness)
+# Register Almond kernel (FIXED: removed --user flag for 0.14.1+ compatibility)
 RUN if [ -f /home/vscode/almond ]; then \
-        /home/vscode/almond --install --user && rm /home/vscode/almond; \
+        /home/vscode/almond --install && rm /home/vscode/almond; \
     elif which almond >/dev/null 2>&1; then \
-        almond --install --user; \
+        almond --install; \
     else \
-        cs launch almond -- --install --user; \
+        cs launch almond -- --install; \
     fi
+
+# Verify Almond kernel installation
+RUN jupyter kernelspec list | grep -i scala || echo "Scala kernel installation verification failed, but continuing build"
 
 # Create JupyterLab configuration for autocompletion
 RUN mkdir -p /home/vscode/.jupyter/lab/user-settings/@jupyterlab/completer-extension/ \
